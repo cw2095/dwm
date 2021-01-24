@@ -1,4 +1,5 @@
 /* See LICENSE file for copyright and license details. */
+#include <X11/XF86keysym.h>
 
 /* appearance */
 static const unsigned int borderpx  = 5;        /* border pixel of windows */
@@ -21,8 +22,8 @@ static const char *colors[][3]      = {
     [SchemeHid]  = { col_cyan,  col_gray1, col_cyan  },
 };
 
-static const unsigned int baralpha = 0xd0;
-static const unsigned int borderalpha = OPAQUE;
+static const unsigned int baralpha = 0xa0;
+static const unsigned int borderalpha = 0xa0;
 static const unsigned int alphas[][3]      = {
     /*               fg      bg        border     */
     [SchemeNorm] = { OPAQUE, baralpha, borderalpha },
@@ -30,7 +31,12 @@ static const unsigned int alphas[][3]      = {
 };
 
 /* tagging */
-static const char *tags[] = { "1", "2", "3", "4", "5", "6", "7", "8", "9" };
+// static const char *tags[] = { "1", "2", "3", "4", "5", "6", "7", "8", "9" };
+// static const char *tags[] = { "", "", "", "", "", "", "", "", ""};
+// static const char *tags[] = { "", "", "", "", "", "", "", "", "" };
+// static const char *tags[] = { "❶", "❷", "❸",  "➍", "❺", "❻", "❼", "❽", "❾" };
+static const char *tags[] = { "𝟭", "𝟮", "𝟯", "𝟰", "𝟱", "𝟲", "𝟳", "𝟴", "𝟵" };
+// static const char *tagsalt[] = { "1", "2", "3", "4", "5", "6", "7", "8", "9" };
 
 static const Rule rules[] = {
     /* xprop(1):
@@ -69,6 +75,9 @@ static const Layout layouts[] = {
 static char dmenumon[2] = "0"; /* component of dmenucmd, manipulated in spawn() */
 static const char *dmenucmd[] = { "dmenu_run", "-m", dmenumon, "-fn", dmenufont, "-nb", col_gray1, "-nf", col_gray3, "-sb", col_cyan, "-sf", col_gray4, NULL };
 static const char *termcmd[]  = { "alacritty", NULL };
+// static const char *upvol[]   = { "/home/david/scripts/vol-up.sh",  NULL };
+// static const char *downvol[] = { "/home/david/scripts/vol-down.sh",  NULL };
+// static const char *mutevol[] = { "/home/david/scripts/vol-toggle.sh",  NULL };
 
 static Key keys[] = {
     /* modifier                     key        function        argument */
@@ -102,6 +111,12 @@ static Key keys[] = {
     { MODKEY,                       XK_s,      show,           {0} },
     { MODKEY,                       XK_h,      hide,           {0} },
     { MODKEY|ShiftMask,             XK_f,      fullscreen,     {0} },
+    { 0,                            XF86XK_AudioMute,        spawn, SHCMD("amixer set Master toggle; kill -44 $(pidof dwmblocks)") },
+    { 0, XF86XK_AudioRaiseVolume, spawn, SHCMD("amixer -qM set Master 5%+ umute; kill -44 $(pidof dwmblocks)") },
+    { 0, XF86XK_AudioLowerVolume, spawn, SHCMD("amixer -qM set Master 5%- umute; kill -44 $(pidof dwmblocks)") },
+    { MODKEY,              XK_bracketleft,          spawn,          SHCMD("amixer -qM set Master 5%- umute; kill -44 $(pidof dwmblocks)") },
+    { MODKEY,              XK_backslash,            spawn,          SHCMD("amixer set Master toggle; kill -44 $(pidof dwmblocks)") },
+    { MODKEY,              XK_bracketright,         spawn,          SHCMD("amixer -qM set Master 5%+ umute; kill -44 $(pidof dwmblocks)") },
     TAGKEYS(                        XK_1,                      0)
     TAGKEYS(                        XK_2,                      1)
     TAGKEYS(                        XK_3,                      2)
@@ -122,7 +137,12 @@ static Button buttons[] = {
     { ClkLtSymbol,          0,              Button3,        setlayout,      {.v = &layouts[2]} },
     { ClkWinTitle,          0,              Button1,        togglewin,      {0} },
     { ClkWinTitle,          0,              Button2,        zoom,           {0} },
-    { ClkStatusText,        0,              Button2,        spawn,          {.v = termcmd } },
+    { ClkStatusText,        0,              Button1,        sigdwmblocks,   {.i = 1} },
+    { ClkStatusText,        0,              Button2,        sigdwmblocks,   {.i = 2} },
+    { ClkStatusText,        0,              Button3,        sigdwmblocks,   {.i = 3} },
+    { ClkStatusText,        0,              Button4,        sigdwmblocks,   {.i = 4} },
+    { ClkStatusText,        0,              Button5,        sigdwmblocks,   {.i = 5} },
+    { ClkStatusText,        ShiftMask,      Button1,        sigdwmblocks,   {.i = 6} },
     { ClkClientWin,         MODKEY,         Button1,        movemouse,      {0} },
     { ClkClientWin,         MODKEY,         Button2,        togglefloating, {0} },
     { ClkClientWin,         MODKEY,         Button3,        resizemouse,    {0} },
