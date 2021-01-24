@@ -121,7 +121,7 @@ struct Monitor {
     int num;
     int by;               /* bar geometry */
     int btw;              /* width of tasks portion of bar */
-	int bt;               /* number of tasks */
+    int bt;               /* number of tasks */
     int mx, my, mw, mh;   /* screen size */
     int wx, wy, ww, wh;   /* window area  */
     unsigned int seltags;
@@ -243,6 +243,7 @@ static void updatetitle(Client *c);
 static void updatewindowtype(Client *c);
 static void updatewmhints(Client *c);
 static void view(const Arg *arg);
+static void movestack(const Arg *arg);
 static Client *wintoclient(Window w);
 static Monitor *wintomon(Window w);
 static int xerror(Display *dpy, XErrorEvent *ee);
@@ -464,24 +465,24 @@ buttonpress(XEvent *e)
         } else if (ev->x < x + blw)
             click = ClkLtSymbol;
         /* 2px right padding */
-		else if (ev->x > selmon->ww - TEXTW(stext) + lrpad - 2)
+        else if (ev->x > selmon->ww - TEXTW(stext) + lrpad - 2)
             click = ClkStatusText;
         else {
-			x += blw;
-			c = m->clients;
+            x += blw;
+            c = m->clients;
 
-			if (c) {
-				do {
-					if (!ISVISIBLE(c))
-						continue;
-					else
-						x += (1.0 / (double)m->bt) * m->btw;
-				} while (ev->x > x && (c = c->next));
+            if (c) {
+                do {
+                    if (!ISVISIBLE(c))
+                        continue;
+                    else
+                        x += (1.0 / (double)m->bt) * m->btw;
+                } while (ev->x > x && (c = c->next));
 
-				click = ClkWinTitle;
-				arg.v = c;
-			}
-		}
+                click = ClkWinTitle;
+                arg.v = c;
+            }
+        }
     } else if ((c = wintoclient(ev->window))) {
         focus(c);
         restack(selmon);
@@ -749,7 +750,7 @@ drawbar(Monitor *m)
 
     for (c = m->clients; c; c = c->next) {
         if (ISVISIBLE(c))
-			n++;
+            n++;
         occ |= c->tags;
         if (c->isurgent)
             urg |= c->tags;
@@ -771,28 +772,28 @@ drawbar(Monitor *m)
 
     if ((w = m->ww - tw - x) > bh) {
         if (n > 0) {
-			int remainder = w % n;
-			int tabw = (1.0 / (double)n) * w + 1;
-			for (c = m->clients; c; c = c->next) {
-				if (!ISVISIBLE(c))
-					continue;
-				if (m->sel == c)
-					scm = SchemeSel;
-				else if (HIDDEN(c))
-					scm = SchemeHid;
-				else
-					scm = SchemeNorm;
-				drw_setscheme(drw, scheme[scm]);
+            int remainder = w % n;
+            int tabw = (1.0 / (double)n) * w + 1;
+            for (c = m->clients; c; c = c->next) {
+                if (!ISVISIBLE(c))
+                    continue;
+                if (m->sel == c)
+                    scm = SchemeSel;
+                else if (HIDDEN(c))
+                    scm = SchemeHid;
+                else
+                    scm = SchemeNorm;
+                drw_setscheme(drw, scheme[scm]);
 
-				if (remainder >= 0) {
-					if (remainder == 0) {
-						tabw--;
-					}
-					remainder--;
-				}
-				drw_text(drw, x, 0, tabw, bh, lrpad / 2, c->name, 0);
-				x += tabw;
-			}
+                if (remainder >= 0) {
+                    if (remainder == 0) {
+                        tabw--;
+                    }
+                    remainder--;
+                }
+                drw_text(drw, x, 0, tabw, bh, lrpad / 2, c->name, 0);
+                x += tabw;
+            }
         } else {
             drw_setscheme(drw, scheme[SchemeNorm]);
             drw_rect(drw, x, 0, w - 2 * sp, bh, 1, 1);
@@ -800,7 +801,7 @@ drawbar(Monitor *m)
     }
     
     m->bt = n;
-	m->btw = w;
+    m->btw = w;
     drw_map(drw, m->barwin, 0, 0, m->ww, bh);
 }
 
@@ -852,13 +853,13 @@ focus(Client *c)
         unfocus(selmon->sel, 0);
         
         if (selmon->hidsel) {
-			hidewin(selmon->sel);
-			if (c)
-				arrange(c->mon);
-			selmon->hidsel = 0;
-		}
-	}
-	
+            hidewin(selmon->sel);
+            if (c)
+                arrange(c->mon);
+            selmon->hidsel = 0;
+        }
+    }
+    
     if (c) {
         if (c->mon != selmon)
             selmon = c->mon;
@@ -905,13 +906,13 @@ focusmon(const Arg *arg)
 void
 focusstackvis(const Arg *arg)
 {
-	focusstack(arg->i, 0);
+    focusstack(arg->i, 0);
 }
 
 void
 focusstackhid(const Arg *arg)
 {
-	focusstack(arg->i, 1);
+    focusstack(arg->i, 1);
 }
 
 void
@@ -922,24 +923,24 @@ focusstack(int inc, int hid)
     if (!selmon->sel && !hid)
         return;
     if (!selmon->clients)
-		return;
+        return;
 
-	if (inc > 0) {
-		if (selmon->sel)
-			for (c = selmon->sel->next;
-					 c && (!ISVISIBLE(c) || (!hid && HIDDEN(c)));
-					 c = c->next);
+    if (inc > 0) {
+        if (selmon->sel)
+            for (c = selmon->sel->next;
+                     c && (!ISVISIBLE(c) || (!hid && HIDDEN(c)));
+                     c = c->next);
         if (!c)
             for (c = selmon->clients;
-					 c && (!ISVISIBLE(c) || (!hid && HIDDEN(c)));
-					 c = c->next);
+                     c && (!ISVISIBLE(c) || (!hid && HIDDEN(c)));
+                     c = c->next);
     } else {
         if (selmon->sel) {
-			for (i = selmon->clients; i != selmon->sel; i = i->next)
-				if (ISVISIBLE(i) && !(!hid && HIDDEN(i)))
-					c = i;
-		} else
-			c = selmon->clients;
+            for (i = selmon->clients; i != selmon->sel; i = i->next)
+                if (ISVISIBLE(i) && !(!hid && HIDDEN(i)))
+                    c = i;
+        } else
+            c = selmon->clients;
         if (!c)
             for (; i; i = i->next)
                 if (ISVISIBLE(i) && !(!hid && HIDDEN(i)))
@@ -950,9 +951,9 @@ focusstack(int inc, int hid)
         restack(selmon);
         
         if (HIDDEN(c)) {
-			showwin(c);
-			c->mon->hidsel = 1;
-		}
+            showwin(c);
+            c->mon->hidsel = 1;
+        }
     }
 }
 
@@ -1067,31 +1068,31 @@ grabkeys(void)
 void
 hide(const Arg *arg)
 {
-	hidewin(selmon->sel);
-	focus(NULL);
-	arrange(selmon);
+    hidewin(selmon->sel);
+    focus(NULL);
+    arrange(selmon);
 }
 
 void
 hidewin(Client *c) {
-	if (!c || HIDDEN(c))
-		return;
+    if (!c || HIDDEN(c))
+        return;
 
-	Window w = c->win;
-	static XWindowAttributes ra, ca;
+    Window w = c->win;
+    static XWindowAttributes ra, ca;
 
-	// more or less taken directly from blackbox's hide() function
-	XGrabServer(dpy);
-	XGetWindowAttributes(dpy, root, &ra);
-	XGetWindowAttributes(dpy, w, &ca);
-	// prevent UnmapNotify events
-	XSelectInput(dpy, root, ra.your_event_mask & ~SubstructureNotifyMask);
-	XSelectInput(dpy, w, ca.your_event_mask & ~StructureNotifyMask);
-	XUnmapWindow(dpy, w);
-	setclientstate(c, IconicState);
-	XSelectInput(dpy, root, ra.your_event_mask);
-	XSelectInput(dpy, w, ca.your_event_mask);
-	XUngrabServer(dpy);
+    // more or less taken directly from blackbox's hide() function
+    XGrabServer(dpy);
+    XGetWindowAttributes(dpy, root, &ra);
+    XGetWindowAttributes(dpy, w, &ca);
+    // prevent UnmapNotify events
+    XSelectInput(dpy, root, ra.your_event_mask & ~SubstructureNotifyMask);
+    XSelectInput(dpy, w, ca.your_event_mask & ~StructureNotifyMask);
+    XUnmapWindow(dpy, w);
+    setclientstate(c, IconicState);
+    XSelectInput(dpy, root, ra.your_event_mask);
+    XSelectInput(dpy, w, ca.your_event_mask);
+    XUngrabServer(dpy);
 }
 
 void
@@ -1199,13 +1200,13 @@ manage(Window w, XWindowAttributes *wa)
         (unsigned char *) &(c->win), 1);
     XMoveResizeWindow(dpy, c->win, c->x + 2 * sw, c->y, c->w, c->h); /* some windows require this */
     if (!HIDDEN(c))
-		setclientstate(c, NormalState);
+        setclientstate(c, NormalState);
     if (c->mon == selmon)
         unfocus(selmon->sel, 0);
     c->mon->sel = c;
     arrange(c->mon);
     if (!HIDDEN(c))
-		XMapWindow(dpy, c->win);
+        XMapWindow(dpy, c->win);
     focus(NULL);
 }
 
@@ -1382,14 +1383,14 @@ void
 quit(const Arg *arg)
 {
     // fix: reloading dwm keeps all the hidden clients hidden
-	Monitor *m;
-	Client *c;
-	for (m = mons; m; m = m->next) {
-		if (m) {
-			for (c = m->stack; c; c = c->next)
-				if (c && HIDDEN(c)) showwin(c);
-		}
-	}
+    Monitor *m;
+    Client *c;
+    for (m = mons; m; m = m->next) {
+        if (m) {
+            for (c = m->stack; c; c = c->next)
+                if (c && HIDDEN(c)) showwin(c);
+        }
+    }
 
     running = 0;
 }
@@ -1649,13 +1650,13 @@ Layout *last_layout;
 void
 fullscreen(const Arg *arg)
 {
-	if (selmon->showbar) {
-		for(last_layout = (Layout *)layouts; last_layout != selmon->lt[selmon->sellt]; last_layout++);
-		setlayout(&((Arg) { .v = &layouts[2] }));
-	} else {
-		setlayout(&((Arg) { .v = last_layout }));
-	}
-	togglebar(arg);
+    if (selmon->showbar) {
+        for(last_layout = (Layout *)layouts; last_layout != selmon->lt[selmon->sellt]; last_layout++);
+        setlayout(&((Arg) { .v = &layouts[2] }));
+    } else {
+        setlayout(&((Arg) { .v = last_layout }));
+    }
+    togglebar(arg);
 }
 
 void
@@ -1779,20 +1780,20 @@ seturgent(Client *c, int urg)
 void
 show(const Arg *arg)
 {
-	if (selmon->hidsel)
-		selmon->hidsel = 0;
-	showwin(selmon->sel);
+    if (selmon->hidsel)
+        selmon->hidsel = 0;
+    showwin(selmon->sel);
 }
 
 void
 showwin(Client *c)
 {
-	if (!c || !HIDDEN(c))
-		return;
+    if (!c || !HIDDEN(c))
+        return;
 
-	XMapWindow(dpy, c->win);
-	setclientstate(c, NormalState);
-	arrange(c->mon);
+    XMapWindow(dpy, c->win);
+    setclientstate(c, NormalState);
+    arrange(c->mon);
 }
 
 void
@@ -1936,18 +1937,18 @@ toggleview(const Arg *arg)
 void
 togglewin(const Arg *arg)
 {
-	Client *c = (Client*)arg->v;
+    Client *c = (Client*)arg->v;
 
-	if (c == selmon->sel) {
-		hidewin(c);
-		focus(NULL);
-		arrange(c->mon);
-	} else {
-		if (HIDDEN(c))
-			showwin(c);
-		focus(c);
-		restack(selmon);
-	}
+    if (c == selmon->sel) {
+        hidewin(c);
+        focus(NULL);
+        arrange(c->mon);
+    } else {
+        if (HIDDEN(c))
+            showwin(c);
+        focus(c);
+        restack(selmon);
+    }
 }
 
 void
@@ -2249,6 +2250,56 @@ view(const Arg *arg)
     focus(NULL);
     arrange(selmon);
 }
+
+void
+movestack(const Arg *arg) {
+    Client *c = NULL, *p = NULL, *pc = NULL, *i;
+
+    if(arg->i > 0) {
+        /* find the client after selmon->sel */
+        for(c = selmon->sel->next; c && (!ISVISIBLE(c) || c->isfloating); c = c->next);
+        if(!c)
+            for(c = selmon->clients; c && (!ISVISIBLE(c) || c->isfloating); c = c->next);
+
+    }
+    else {
+        /* find the client before selmon->sel */
+        for(i = selmon->clients; i != selmon->sel; i = i->next)
+            if(ISVISIBLE(i) && !i->isfloating)
+                c = i;
+        if(!c)
+            for(; i; i = i->next)
+                if(ISVISIBLE(i) && !i->isfloating)
+                    c = i;
+    }
+    /* find the client before selmon->sel and c */
+    for(i = selmon->clients; i && (!p || !pc); i = i->next) {
+        if(i->next == selmon->sel)
+            p = i;
+        if(i->next == c)
+            pc = i;
+    }
+
+    /* swap c and selmon->sel selmon->clients in the selmon->clients list */
+    if(c && c != selmon->sel) {
+        Client *temp = selmon->sel->next==c?selmon->sel:selmon->sel->next;
+        selmon->sel->next = c->next==selmon->sel?c:c->next;
+        c->next = temp;
+
+        if(p && p != c)
+            p->next = c;
+        if(pc && pc != selmon->sel)
+            pc->next = selmon->sel;
+
+        if(selmon->sel == selmon->clients)
+            selmon->clients = c;
+        else if(c == selmon->clients)
+            selmon->clients = selmon->sel;
+
+        arrange(selmon);
+    }
+}
+
 
 Client *
 wintoclient(Window w)
