@@ -447,7 +447,7 @@ attachstack(Client *c)
 void
 buttonpress(XEvent *e)
 {
-    unsigned int i, x, click;
+    unsigned int i, x, click, occ = 0;
     Arg arg = {0};
     Client *c;
     Monitor *m;
@@ -462,9 +462,14 @@ buttonpress(XEvent *e)
     }
     if (ev->window == selmon->barwin) {
         i = x = 0;
-        do
+        for (c = m->clients; c; c = c->next)
+            occ |= c->tags == 255 ? 0 : c->tags;
+        do {
+            /* do not reserve space for vacant tags */
+            if (!(occ & 1 << i || m->tagset[m->seltags] & 1 << i))
+                continue;
             x += TEXTW(tags[i]);
-        while (ev->x >= x && ++i < LENGTH(tags));
+        }while (ev->x >= x && ++i < LENGTH(tags));
         if (i < LENGTH(tags)) {
             click = ClkTagBar;
             arg.ui = 1 << i;
@@ -474,21 +479,21 @@ buttonpress(XEvent *e)
         else if (ev->x > selmon->ww - TEXTW(stext) + lrpad - 2) {
             click = ClkStatusText;
             char *text = rawstext;
-			int i = -1;
-			char ch;
-			dwmblockssig = 0;
-			while (text[++i]) {
-				if ((unsigned char)text[i] < ' ') {
-					ch = text[i];
-					text[i] = '\0';
-					x += TEXTW(text) - lrpad;
-					text[i] = ch;
-					text += i+1;
-					i = -1;
-					if (x >= ev->x) break;
-					dwmblockssig = ch;
-				}
-			}
+            int i = -1;
+            char ch;
+            dwmblockssig = 0;
+            while (text[++i]) {
+                if ((unsigned char)text[i] < ' ') {
+                    ch = text[i];
+                    text[i] = '\0';
+                    x += TEXTW(text) - lrpad;
+                    text[i] = ch;
+                    text += i+1;
+                    i = -1;
+                    if (x >= ev->x) break;
+                    dwmblockssig = ch;
+                }
+            }
         } else {
             x += blw;
             c = m->clients;
@@ -692,14 +697,14 @@ configurerequest(XEvent *e)
 void
 copyvalidchars(char *text, char *rawtext)
 {
-	int i = -1, j = 0;
+    int i = -1, j = 0;
 
-	while(rawtext[++i]) {
-		if ((unsigned char)rawtext[i] >= ' ') {
-			text[j++] = rawtext[i];
-		}
-	}
-	text[j] = '\0';
+    while(rawtext[++i]) {
+        if ((unsigned char)rawtext[i] >= ' ') {
+            text[j++] = rawtext[i];
+        }
+    }
+    text[j] = '\0';
 }
 
 Monitor *
@@ -786,19 +791,18 @@ drawbar(Monitor *m)
     for (c = m->clients; c; c = c->next) {
         if (ISVISIBLE(c))
             n++;
-        occ |= c->tags;
+        occ |= c->tags == 255 ? 0 : c->tags;
         if (c->isurgent)
             urg |= c->tags;
     }
     x = 0;
     for (i = 0; i < LENGTH(tags); i++) {
+        /* do not draw vacant tags */
+        if (!(occ & 1 << i || m->tagset[m->seltags] & 1 << i))
+        continue;
         w = TEXTW(tags[i]);
         drw_setscheme(drw, scheme[m->tagset[m->seltags] & 1 << i ? SchemeSel : SchemeNorm]);
         drw_text(drw, x, 0, w, bh, lrpad / 2, tags[i], urg & 1 << i);
-        if (occ & 1 << i)
-            drw_rect(drw, x + boxs, boxs, boxw, boxw,
-                m == selmon && selmon->sel && selmon->sel->tags & 1 << i,
-                urg & 1 << i);
         x += w;
     }
     w = blw = TEXTW(m->ltsymbol);
@@ -1011,13 +1015,13 @@ getatomprop(Client *c, Atom prop)
 int
 getdwmblockspid()
 {
-	char buf[16];
-	FILE *fp = popen("pidof -s dwmblocks", "r");
-	fgets(buf, sizeof(buf), fp);
-	pid_t pid = strtoul(buf, NULL, 10);
-	pclose(fp);
-	dwmblockspid = pid;
-	return pid != 0 ? 0 : -1;
+    char buf[16];
+    FILE *fp = popen("pidof -s dwmblocks", "r");
+    fgets(buf, sizeof(buf), fp);
+    pid_t pid = strtoul(buf, NULL, 10);
+    pclose(fp);
+    dwmblockspid = pid;
+    return pid != 0 ? 0 : -1;
 }
 
 int
@@ -1872,18 +1876,18 @@ sigchld(int unused)
 void
 sigdwmblocks(const Arg *arg)
 {
-	union sigval sv;
-	sv.sival_int = (dwmblockssig << 8) | arg->i;
-	if (!dwmblockspid)
-		if (getdwmblockspid() == -1)
-			return;
+    union sigval sv;
+    sv.sival_int = (dwmblockssig << 8) | arg->i;
+    if (!dwmblockspid)
+        if (getdwmblockspid() == -1)
+            return;
 
-	if (sigqueue(dwmblockspid, SIGUSR1, sv) == -1) {
-		if (errno == ESRCH) {
-			if (!getdwmblockspid())
-				sigqueue(dwmblockspid, SIGUSR1, sv);
-		}
-	}
+    if (sigqueue(dwmblockspid, SIGUSR1, sv) == -1) {
+        if (errno == ESRCH) {
+            if (!getdwmblockspid())
+                sigqueue(dwmblockspid, SIGUSR1, sv);
+        }
+    }
 }
 
 void
@@ -2261,7 +2265,7 @@ updatestatus(void)
     if (!gettextprop(root, XA_WM_NAME, rawstext, sizeof(rawstext)))
         strcpy(stext, "dwm-"VERSION);
     else
-		copyvalidchars(stext, rawstext);
+        copyvalidchars(stext, rawstext);
     drawbar(selmon);
 }
 
